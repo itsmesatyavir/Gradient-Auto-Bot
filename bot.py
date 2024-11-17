@@ -33,7 +33,7 @@ banner = """
 
 Join our Telegram channel for the latest updates: t.me/airdropinsiderid
 
-Airdrop Insider
+GRADIENT AUTO BOT - Airdrop Insider
 ==================================================================
 """
 print(banner)
@@ -60,7 +60,19 @@ if not USER or not PASSWORD:
 
 # Load proxies from file
 with open("active_proxies.txt", "r") as f:
-    proxies = [line.strip() for line in f]
+    proxies = [line.strip() for line in f if line.strip()]  # Remove empty lines
+
+if not proxies:
+    logger.error("No proxies found in active_proxies.txt")
+    exit(1)
+
+# Log proxies for debugging
+logger.info(f"Loaded proxies: {proxies}")
+
+# Ensure only one proxy is processed if there's only one line in the file
+if len(proxies) == 1:
+    logger.info("Only one proxy detected, running in single-thread mode.")
+    proxies = proxies[:1]  # Explicitly limit to one proxy
 
 # Initialize Fake User-Agent generator
 ua = UserAgent()
@@ -161,18 +173,22 @@ def worker(proxy):
     else:
         logger.info(f"Proxy {proxy} failed. Moving to next.")
 
-# Main function to run proxies in parallel with random delays
+# Main function to run proxies
 def main():
-    """Main function to run proxies in parallel."""
-    max_workers = len(proxies)  # Number of threads equals the number of proxies
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(worker, proxy) for proxy in proxies]
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                logger.error(f"Error in worker: {e}")
+    """Main function to run proxies."""
+    if len(proxies) == 1:
+        logger.info(f"Using single proxy: {proxies[0]}")
+        worker(proxies[0])  # Run directly without threading
+    else:
+        logger.info(f"Multiple proxies detected, running in multi-thread mode.")
+        max_workers = len(proxies)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(worker, proxy) for proxy in proxies]
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error(f"Error in worker: {e}")
 
 if __name__ == "__main__":
     main()
-
