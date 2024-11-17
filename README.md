@@ -47,6 +47,26 @@ Before running the script, ensure you have the following installed:
   APP_USER=your_email@example.com
   APP_PASS=your_password
 
+## Installing ChromeDriver on Linux
+
+1. **Check Chrome Version**:
+   Open Chrome, go to `chrome://settings/help`, and note the version number.
+
+2. **Install ChromeDriver**:
+   Use the following commands to download and install ChromeDriver:
+   ```bash
+   sudo apt update
+   sudo apt install -y wget unzip
+   wget https://chromedriver.storage.googleapis.com/<your_chrome_version>/chromedriver_linux64.zip
+   unzip chromedriver_linux64.zip
+   sudo mv chromedriver /usr/local/bin/
+   chmod +x /usr/local/bin/chromedriver
+   ```
+3. **Verify Installation Driver**:
+   ```bash
+   chromedriver --version
+   ```
+
 ## Run
 
 1. Clone Repository
