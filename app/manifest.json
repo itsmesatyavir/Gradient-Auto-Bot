@@ -1,0 +1,24 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+    "name": "Gradient Sentry Node",
+    "version": "1.0.16",
+    "description": "Get a sentry node and join the future of ubiquitous compute.",
+    "manifest_version": 3,
+    "icons": {
+        "16": "icons/icon-16.png",
+        "48": "icons/icon-48.png",
+        "128": "icons/icon-128.png"
+    },
+    "background": {
+        "service_worker": "background.bundle.js"
+    },
+    "permissions": ["storage", "offscreen"],
+    "action": {
+        "default_icon": "icons/icon-128.png",
+        "default_popup": "popup.html"
+    },
+    "externally_connectable": {
+        "matches": ["https://app.gradient.network/*"]
+    }
+}
