@@ -63,16 +63,8 @@ with open("active_proxies.txt", "r") as f:
     proxies = [line.strip() for line in f if line.strip()]  # Remove empty lines
 
 if not proxies:
-    logger.error("No proxies found in active_proxies.txt")
-    exit(1)
-
-# Log proxies for debugging
-logger.info(f"Loaded proxies: {proxies}")
-
-# Ensure only one proxy is processed if there's only one line in the file
-if len(proxies) == 1:
-    logger.info("Only one proxy detected, running in single-thread mode.")
-    proxies = proxies[:1]  # Explicitly limit to one proxy
+    logger.warning("No proxies found in active_proxies.txt. Running in direct mode.")
+    proxies = [None]  # Tambahkan mode direct (tanpa proxy)
 
 # Initialize Fake User-Agent generator
 ua = UserAgent()
@@ -107,6 +99,8 @@ def setup_chrome_options(proxy=None):
     if proxy:
         chrome_options.add_argument(f"--proxy-server={proxy}")
         logger.info(f"Using proxy: {proxy}")
+    else:
+        logger.info("Running in direct mode (no proxy).")
 
     # Use extensions if necessary
     ext_path = Path(EXTENSION_FILENAME).resolve()
@@ -152,10 +146,10 @@ def attempt_connection(proxy):
         download_extension()
         login_to_app(driver)
         open_extension(driver)
-        logger.info(f"Connection successful with proxy: {proxy}")
+        logger.info(f"Connection successful with proxy: {proxy if proxy else 'Direct mode'}")
         return driver
     except Exception as e:
-        logger.warning(f"Proxy failed: {proxy} - Error: {e}")
+        logger.warning(f"Proxy failed: {proxy if proxy else 'Direct mode'} - Error: {e}")
         driver.quit()
         return None
 
@@ -163,32 +157,37 @@ def attempt_connection(proxy):
 def worker(proxy):
     driver = attempt_connection(proxy)
     if driver:
-        logger.info(f"Proxy {proxy} is working. Running tasks...")
+        logger.info(f"Proxy {proxy if proxy else 'Direct mode'} is working. Running tasks...")
         try:
             while True:
                 time.sleep(random.uniform(20, 40))  # Random delay between actions to look more natural
-                logger.info(f"Running tasks on proxy {proxy}...")
+                logger.info(f"Running tasks on proxy {proxy if proxy else 'Direct mode'}...")
+        except KeyboardInterrupt:
+            logger.info("Stopping worker due to user interrupt.")
         finally:
             driver.quit()
     else:
-        logger.info(f"Proxy {proxy} failed. Moving to next.")
+        logger.info(f"Proxy {proxy if proxy else 'Direct mode'} failed. Moving to next.")
 
 # Main function to run proxies
 def main():
     """Main function to run proxies."""
-    if len(proxies) == 1:
-        logger.info(f"Using single proxy: {proxies[0]}")
-        worker(proxies[0])  # Run directly without threading
-    else:
-        logger.info(f"Multiple proxies detected, running in multi-thread mode.")
-        max_workers = len(proxies)
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(worker, proxy) for proxy in proxies]
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    logger.error(f"Error in worker: {e}")
+    try:
+        if len(proxies) == 1:
+            logger.info(f"Using single mode: {'Direct' if proxies[0] is None else proxies[0]}")
+            worker(proxies[0])  # Run directly without threading
+        else:
+            logger.info(f"Multiple modes detected, running in multi-thread mode.")
+            max_workers = min(len(proxies), 5)  # Limit threads to 5 for efficiency
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(worker, proxy) for proxy in proxies]
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        logger.error(f"Error in worker: {e}")
+    except KeyboardInterrupt:
+        logger.info("Script stopped by user (CTRL+C).")
 
 if __name__ == "__main__":
     main()
